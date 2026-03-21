@@ -14,7 +14,7 @@ Overall:  █████░░░░░░░░░░░░░░░░░░�
 
 Stage 1   /plan-ceo-review     [✓] COMPLETE
 Stage 2   /plan-eng-review     [✓] COMPLETE
-Stage 3   implement            [ ] NOT STARTED
+Stage 3   implement            [~] IN PROGRESS
 Stage 4   /review              [ ] NOT STARTED
 Stage 5   /ship                [ ] NOT STARTED
 Stage 6   /qa                  [ ] NOT STARTED
