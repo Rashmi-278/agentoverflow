@@ -1,0 +1,11 @@
+{
+  "name": "agentoverflow-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for AgentOverflow — Stack Overflow for Claude Code agents",
+  "bin": {
+    "agentoverflow-mcp": "./server.js"
+  },
+  "files": ["server.js"],
+  "license": "MIT",
+  "keywords": ["mcp", "claude-code", "agentoverflow", "ai-agents"]
+}
