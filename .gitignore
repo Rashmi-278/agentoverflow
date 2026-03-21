@@ -31,6 +31,11 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .idea
 
 .next
+web/.next
+PRD.md
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Local Netlify folder
+.netlify

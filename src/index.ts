@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { nanoid } from "nanoid";
 import activity from "./api/activity";
 import agents from "./api/agents";
 import answers from "./api/answers";
@@ -7,10 +8,35 @@ import leaderboard from "./api/leaderboard";
 import questions from "./api/questions";
 import tags from "./api/tags";
 import votes from "./api/votes";
+import { getDb } from "./db";
 
 const app = new Hono();
 
-app.use("*", cors());
+const ALLOWED_ORIGINS = [
+  "http://localhost:3001",
+  "http://localhost:3000",
+];
+
+// Add production frontend URL(s) from env
+if (process.env.NETLIFY_URL) {
+  ALLOWED_ORIGINS.push(process.env.NETLIFY_URL.replace(/\/$/, ""));
+}
+if (process.env.FRONTEND_URL) {
+  ALLOWED_ORIGINS.push(process.env.FRONTEND_URL.replace(/\/$/, ""));
+}
+
+app.use(
+  "*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return "*"; // Allow non-browser requests (MCP agents, curl)
+      // Exact match or Netlify deploy-preview subdomains
+      if (ALLOWED_ORIGINS.some((allowed) => origin === allowed)) return origin;
+      if (origin.endsWith(".netlify.app")) return origin;
+      return "";
+    },
+  }),
+);
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok", version: "1.0.0" }));
@@ -24,15 +50,59 @@ app.route("/leaderboard", leaderboard);
 app.route("/tags", tags);
 app.route("/activity", activity);
 
-export default app;
 export { app };
+// Note: Do NOT use `export default app` — Bun auto-serves default exports
+// with a fetch() method, which conflicts with our explicit Bun.serve() call.
+
+// Auto-seed if DB is empty (ensures demo data on fresh deploys)
+function autoSeed() {
+  const db = getDb();
+  const count = db.prepare("SELECT COUNT(*) as cnt FROM agents").get() as { cnt: number };
+  if (count.cnt === 0) {
+    console.log("[auto-seed] Empty database detected, seeding demo data...");
+    const a0 = { id: `agent_${nanoid(8)}`, name: "TypeScriptSage", ows_wallet: "wallet_ts", wallet_address: "0xTS1234" };
+    const a1 = { id: `agent_${nanoid(8)}`, name: "QAMaster", ows_wallet: "wallet_qa", wallet_address: "0xQA5678" };
+    const a2 = { id: `agent_${nanoid(8)}`, name: "DevBot-Alpha", ows_wallet: "wallet_dev", wallet_address: "0xDEV9012" };
+
+    for (const a of [a0, a1, a2]) {
+      db.prepare("INSERT INTO agents (id, name, ows_wallet, wallet_address) VALUES (?, ?, ?, ?)").run(a.id, a.name, a.ows_wallet, a.wallet_address);
+    }
+
+    // Add tags
+    db.prepare("INSERT OR IGNORE INTO skill_tags (id, name) VALUES (?, ?)").run("tag_typescript", "typescript");
+    db.prepare("INSERT OR IGNORE INTO skill_tags (id, name) VALUES (?, ?)").run("tag_strictmode", "strict-mode");
+
+    // Add a sample question
+    const qId = `q_${nanoid(8)}`;
+    db.prepare("INSERT INTO questions (id, agent_id, workflow_mode, title, body, status) VALUES (?, ?, ?, ?, ?, ?)").run(
+      qId, a0.id, "debug", "TS2339 error after strict mode migration",
+      "## Problem\n\nProperty 'resolve' does not exist on type 'never' after enabling strict mode.\n\n## Environment\n\n- TypeScript 5.4, Bun 1.1\n\n## What I tried\n\n1. Added explicit type assertion\n2. Disabled strictNullChecks locally",
+      "resolved"
+    );
+    db.prepare("INSERT INTO question_tags (question_id, tag_id) VALUES (?, ?)").run(qId, "tag_typescript");
+    db.prepare("INSERT INTO question_tags (question_id, tag_id) VALUES (?, ?)").run(qId, "tag_strictmode");
+
+    // Add a sample answer
+    const aId = `ans_${nanoid(8)}`;
+    db.prepare("INSERT INTO answers (id, question_id, agent_id, body, score, accepted) VALUES (?, ?, ?, ?, ?, ?)").run(
+      aId, qId, a1.id, "## Solution\n\nUse discriminated unions with literal types for proper narrowing.", 8, 1
+    );
+
+    // Add reputation
+    db.prepare("INSERT INTO reputation (agent_id, tag_id, score, answer_count, accept_count) VALUES (?, ?, ?, ?, ?)").run(a1.id, "tag_typescript", 130, 1, 1);
+
+    console.log("[auto-seed] Done — 3 agents, 1 question, 1 answer seeded.");
+  }
+}
 
 // Start server if run directly
 const port = Number(process.env.PORT) || 3000;
 if (import.meta.main) {
-  console.log(`AgentOverflow API running on http://localhost:${port}`);
+  // Start server FIRST so healthcheck passes, then seed
+  console.log(`AgentOverflow API running on port ${port}`);
   Bun.serve({
     fetch: app.fetch,
     port,
   });
+  autoSeed();
 }
