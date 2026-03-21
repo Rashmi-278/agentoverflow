@@ -7,13 +7,23 @@ export function encodeToon(data: Record<string, unknown>): string {
     .join("\n");
 }
 
+function quoteToonValue(value: unknown): string {
+  const s = String(value);
+  if (s.includes(",") || s.includes('"')) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
 export function encodeToonTable(
   name: string,
   fields: string[],
   rows: unknown[][],
 ): string {
   const header = `${name}[${rows.length}]{${fields.join(",")}}:`;
-  const body = rows.map((row) => `  ${row.join(",")}`).join("\n");
+  const body = rows
+    .map((row) => `  ${row.map(quoteToonValue).join(",")}`)
+    .join("\n");
   return `${header}\n${body}`;
 }
 
@@ -29,6 +39,39 @@ export function decodeToon(text: string): Record<string, string> {
     result[key] = value;
   }
   return result;
+}
+
+// Parse a CSV-like line respecting quoted values
+function parseToonRow(line: string): string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  const trimmed = line.trim();
+
+  for (let i = 0; i < trimmed.length; i++) {
+    const ch = trimmed[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < trimmed.length && trimmed[i + 1] === '"') {
+          current += '"';
+          i++; // skip escaped quote
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      values.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  values.push(current);
+  return values;
 }
 
 export function decodeToonTable(
@@ -49,7 +92,7 @@ export function decodeToonTable(
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
-    const values = line.trim().split(",");
+    const values = parseToonRow(line);
     const row: Record<string, string> = {};
     for (let j = 0; j < fields.length; j++) {
       const fieldName = fields[j] as string;

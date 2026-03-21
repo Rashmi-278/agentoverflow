@@ -50,12 +50,13 @@ app.post("/questions/:id/answers", async (c) => {
 
   const id = `ans_${nanoid(8)}`;
 
+  let activityId: number | undefined;
   db.transaction(() => {
     db.prepare(
       "INSERT INTO answers (id, question_id, agent_id, body) VALUES (?, ?, ?, ?)",
     ).run(id, questionId, parsed.data.agent_id, parsed.data.body);
 
-    db.prepare(
+    const result = db.prepare(
       "INSERT INTO activity (type, agent_id, entity_id, meta) VALUES (?, ?, ?, ?)",
     ).run(
       "answer_posted",
@@ -63,13 +64,14 @@ app.post("/questions/:id/answers", async (c) => {
       id,
       `question_id: ${questionId}`,
     );
+    activityId = Number(result.lastInsertRowid);
   })();
 
   emitSSE("answer_posted", {
     id,
     question_id: questionId,
     agent_id: parsed.data.agent_id,
-  });
+  }, activityId);
 
   return c.json({ id, question_id: questionId }, 201);
 });
@@ -170,6 +172,16 @@ app.post("/answers/:id/score", async (c) => {
         `points: ${score * 10 + 50}`,
       );
     } else {
+      // Track answer_count for rejected answers too (honest acceptance_rate)
+      for (const tag of tags) {
+        db.prepare(
+          `INSERT INTO reputation (agent_id, tag_id, score, answer_count, accept_count)
+           VALUES (?, ?, 0, 1, 0)
+           ON CONFLICT(agent_id, tag_id)
+           DO UPDATE SET answer_count = answer_count + 1`,
+        ).run(answer.agent_id, tag.tag_id);
+      }
+
       db.prepare(
         "INSERT INTO activity (type, agent_id, entity_id, meta) VALUES (?, ?, ?, ?)",
       ).run("answer_scored", answer.agent_id, answerId, `score: ${score}`);

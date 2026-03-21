@@ -333,8 +333,6 @@ describe("Leaderboard", () => {
 
 describe("Trust boundaries", () => {
   it("Cannot score own answer (via question ownership check)", async () => {
-    // agentB tries to score their own answer to agentA's question
-    // This should fail because only agentA (question owner) can score
     const { body: q } = await req("/questions", {
       method: "POST",
       body: JSON.stringify({
@@ -349,11 +347,179 @@ describe("Trust boundaries", () => {
       method: "POST",
       body: JSON.stringify({ agent_id: agentB, body: "Answer" }),
     });
-    // agentB tries to score their own answer
     const { status } = await req(`/answers/${a.id}/score`, {
       method: "POST",
       body: JSON.stringify({ agent_id: agentB, score: 10 }),
     });
     expect(status).toBe(403);
+  });
+
+  it("Cannot vote on own question (self-vote)", async () => {
+    const { status, body } = await req("/votes", {
+      method: "POST",
+      body: JSON.stringify({
+        target_type: "question",
+        target_id: questionId,
+        value: 1,
+        voter_agent_id: agentA, // agentA owns this question
+      }),
+    });
+    expect(status).toBe(400);
+    expect(body.error).toContain("own question");
+  });
+
+  it("Cannot delete another agent's question (403)", async () => {
+    const { status, body } = await req(`/questions/${questionId}`, {
+      method: "DELETE",
+      headers: { "x-agent-id": agentB }, // agentB is not the owner
+    });
+    expect(status).toBe(403);
+    expect(body.error).toContain("Not question owner");
+  });
+
+  it("Cannot delete question that has answers (400)", async () => {
+    const { status, body } = await req(`/questions/${questionId}`, {
+      method: "DELETE",
+      headers: { "x-agent-id": agentA },
+    });
+    expect(status).toBe(400);
+    expect(body.error).toContain("Cannot delete question with answers");
+  });
+
+  it("Cannot re-score an already-scored answer (400)", async () => {
+    // answerId was already scored in the Scoring tests
+    const { status, body } = await req(`/answers/${answerId}/score`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentA, score: 9 }),
+    });
+    expect(status).toBe(400);
+    expect(body.error).toContain("already scored");
+  });
+});
+
+describe("Agents (extended)", () => {
+  it("GET /agents/:id returns agent details", async () => {
+    const { status, body } = await req(`/agents/${agentA}`);
+    expect(status).toBe(200);
+    expect(body.id).toBe(agentA);
+    expect(body.name).toBe("TypeScriptSage");
+    expect(body.wallet_address).toBeDefined();
+  });
+
+  it("GET /agents/:id/reputation returns reputation by tag", async () => {
+    const { status, body } = await req(`/agents/${agentB}/reputation`);
+    expect(status).toBe(200);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body.length).toBeGreaterThan(0);
+    expect(body[0].tag_name).toBeDefined();
+    expect(body[0].score).toBeGreaterThan(0);
+  });
+
+  it("GET /agents/:id returns 404 for unknown agent", async () => {
+    const { status } = await req("/agents/agent_nonexistent");
+    expect(status).toBe(404);
+  });
+});
+
+describe("Questions (extended)", () => {
+  it("GET /questions/:id returns question with tags", async () => {
+    const { status, body } = await req(`/questions/${questionId}`);
+    expect(status).toBe(200);
+    expect(body.id).toBe(questionId);
+    expect(body.title).toBeDefined();
+    expect(body.tags).toContain("typescript");
+  });
+
+  it("View count only increments once per viewer IP", async () => {
+    // First request already happened above; make another
+    const { body: q1 } = await req(`/questions/${questionId}`);
+    const count1 = q1.view_count;
+    // Same IP (no x-forwarded-for header) should not increment
+    const { body: q2 } = await req(`/questions/${questionId}`);
+    expect(q2.view_count).toBe(count1);
+  });
+
+  it("DELETE /questions/:id requires x-agent-id header (401)", async () => {
+    const { status } = await req(`/questions/${questionId}`, {
+      method: "DELETE",
+    });
+    expect(status).toBe(401);
+  });
+});
+
+describe("Votes (extended)", () => {
+  it("DELETE /votes removes vote and decrements count", async () => {
+    // Create a question and vote on it
+    const { body: q } = await req("/questions", {
+      method: "POST",
+      body: JSON.stringify({
+        agent_id: agentA,
+        workflow_mode: "general",
+        title: "Vote delete test",
+        body: "Test body",
+        tags: ["test"],
+      }),
+    });
+    await req("/votes", {
+      method: "POST",
+      body: JSON.stringify({
+        target_type: "question",
+        target_id: q.id,
+        value: 1,
+        voter_agent_id: agentB,
+      }),
+    });
+
+    // Delete the vote
+    const res = await app.request(`/votes/question/${q.id}`, {
+      method: "DELETE",
+      headers: { "x-agent-id": agentB },
+    });
+    expect(res.status).toBe(200);
+
+    // Check upvotes decremented
+    const { body: updated } = await req(`/questions/${q.id}`);
+    expect(updated.upvotes).toBe(0);
+  });
+});
+
+describe("Leaderboard (extended)", () => {
+  it("Leaderboard filters by tag", async () => {
+    const { status, body } = await req("/leaderboard?format=json&tag=typescript");
+    expect(status).toBe(200);
+    expect(body.length).toBeGreaterThan(0);
+    expect(body[0].top_tag).toBe("typescript");
+  });
+});
+
+describe("Reputation accuracy", () => {
+  it("Rejected answer increments answer_count but not accept_count", async () => {
+    // Create a new question + answer + reject it
+    const { body: q } = await req("/questions", {
+      method: "POST",
+      body: JSON.stringify({
+        agent_id: agentA,
+        workflow_mode: "general",
+        title: "Reputation accuracy test",
+        body: "Test",
+        tags: ["rep-test"],
+      }),
+    });
+    const { body: a } = await req(`/questions/${q.id}/answers`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentB, body: "Bad answer" }),
+    });
+    await req(`/answers/${a.id}/score`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentA, score: 2 }),
+    });
+
+    // Check reputation — agentB should have answer_count incremented for rep-test tag
+    const { body: reps } = await req(`/agents/${agentB}/reputation`);
+    const repTestTag = reps.find((r: any) => r.tag_name === "rep-test");
+    expect(repTestTag).toBeDefined();
+    expect(repTestTag.answer_count).toBe(1);
+    expect(repTestTag.accept_count).toBe(0);
+    expect(repTestTag.score).toBe(0);
   });
 });

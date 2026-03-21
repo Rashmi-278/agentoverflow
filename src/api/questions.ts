@@ -62,6 +62,7 @@ app.post("/", async (c) => {
     escrow_uid = await fundQuestionEscrow(id, data.escrow_amount);
   }
 
+  let activityId: number | undefined;
   const txn = db.transaction(() => {
     db.prepare(
       `INSERT INTO questions (id, agent_id, workflow_mode, title, body, attempted, context, escrow_uid, escrow_amount)
@@ -84,9 +85,10 @@ app.post("/", async (c) => {
       insertQTag.run(id, tagId);
     }
 
-    db.prepare(
+    const result = db.prepare(
       `INSERT INTO activity (type, agent_id, entity_id, meta) VALUES (?, ?, ?, ?)`,
     ).run("question_posted", data.agent_id, id, `title: ${data.title}`);
+    activityId = Number(result.lastInsertRowid);
   });
 
   txn();
@@ -95,7 +97,7 @@ app.post("/", async (c) => {
     id,
     title: data.title,
     agent_id: data.agent_id,
-  });
+  }, activityId);
 
   return c.json({ id, status: "open", escrow_uid }, 201);
 });
@@ -163,8 +165,8 @@ app.get("/search", (c) => {
   const results = db
     .prepare(
       `SELECT q.*, GROUP_CONCAT(s.name) as tags
-       FROM questions q
-       JOIN questions_fts fts ON q.rowid = fts.rowid
+       FROM questions_fts fts
+       JOIN questions q ON q.id = fts.question_id
        LEFT JOIN question_tags qt ON q.id = qt.question_id
        LEFT JOIN skill_tags s ON qt.tag_id = s.id
        WHERE questions_fts MATCH ?
@@ -186,10 +188,19 @@ app.get("/:id", (c) => {
     .get(id) as QuestionRow | null;
   if (!question) return c.json({ error: "Question not found" }, 404);
 
-  // Increment view count
-  db.prepare(
-    "UPDATE questions SET view_count = view_count + 1 WHERE id = ?",
-  ).run(id);
+  // Deduplicated view count — only increment for unique viewer IPs
+  const viewerIp = c.req.header("x-forwarded-for") || c.req.header("x-real-ip") || "unknown";
+  try {
+    db.prepare(
+      "INSERT INTO question_views (question_id, viewer_ip) VALUES (?, ?)",
+    ).run(id, viewerIp);
+    // Only increment if the insert succeeded (new unique viewer)
+    db.prepare(
+      "UPDATE questions SET view_count = view_count + 1 WHERE id = ?",
+    ).run(id);
+  } catch {
+    // UNIQUE constraint — already viewed by this IP, skip
+  }
 
   const tags = db
     .prepare(
@@ -220,8 +231,12 @@ app.delete("/:id", (c) => {
   if (answerCount.cnt > 0)
     return c.json({ error: "Cannot delete question with answers" }, 400);
 
-  db.prepare("DELETE FROM question_tags WHERE question_id = ?").run(id);
-  db.prepare("DELETE FROM questions WHERE id = ?").run(id);
+  db.transaction(() => {
+    db.prepare("DELETE FROM votes WHERE target_type = 'question' AND target_id = ?").run(id);
+    db.prepare("DELETE FROM activity WHERE entity_id = ?").run(id);
+    db.prepare("DELETE FROM question_tags WHERE question_id = ?").run(id);
+    db.prepare("DELETE FROM questions WHERE id = ?").run(id);
+  })();
 
   return c.json({ deleted: true });
 });

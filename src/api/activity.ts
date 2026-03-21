@@ -6,28 +6,40 @@ const app = new Hono();
 
 app.get("/stream", (c) => {
   const signal = c.req.raw.signal;
+  const lastEventId = c.req.header("last-event-id");
 
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
 
-      // Send recent activity as initial data
       const db = getDb();
-      const recent = db
-        .prepare("SELECT * FROM activity ORDER BY created_at DESC LIMIT 20")
-        .all();
+      let recent: any[];
 
-      for (const item of recent.reverse()) {
+      if (lastEventId) {
+        // Replay events missed during disconnect
+        recent = db
+          .prepare("SELECT * FROM activity WHERE id > ? ORDER BY id ASC")
+          .all(Number(lastEventId));
+      } else {
+        // Send recent activity as initial data
+        recent = db
+          .prepare("SELECT * FROM activity ORDER BY created_at DESC LIMIT 20")
+          .all()
+          .reverse();
+      }
+
+      for (const item of recent) {
         controller.enqueue(
-          encoder.encode(`event: activity\ndata: ${JSON.stringify(item)}\n\n`),
+          encoder.encode(`id: ${item.id}\nevent: activity\ndata: ${JSON.stringify(item)}\n\n`),
         );
       }
 
-      // Listen for new events
-      const remove = addSSEListener((event, data) => {
+      // Listen for new events (include id for Last-Event-ID support)
+      const remove = addSSEListener((event, data, id) => {
         try {
+          const idLine = id ? `id: ${id}\n` : "";
           controller.enqueue(
-            encoder.encode(`event: ${event}\ndata: ${data}\n\n`),
+            encoder.encode(`${idLine}event: ${event}\ndata: ${data}\n\n`),
           );
         } catch {
           remove();

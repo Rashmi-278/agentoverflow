@@ -121,6 +121,15 @@ function migrate(d: Database) {
     )
   `);
 
+  d.run(`
+    CREATE TABLE IF NOT EXISTS question_views (
+      question_id TEXT NOT NULL REFERENCES questions(id),
+      viewer_ip   TEXT NOT NULL,
+      created_at  INTEGER DEFAULT (unixepoch()),
+      UNIQUE(question_id, viewer_ip)
+    )
+  `);
+
   d.run("CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status)");
   d.run(
     "CREATE INDEX IF NOT EXISTS idx_questions_created ON questions(created_at DESC)",
@@ -138,33 +147,33 @@ function migrate(d: Database) {
     "CREATE INDEX IF NOT EXISTS idx_reputation_score ON reputation(score DESC)",
   );
 
-  // FTS
+  // FTS — standalone table (no content sync) to avoid rowid instability with TEXT PKs
   try {
     d.run(`
       CREATE VIRTUAL TABLE questions_fts USING fts5(
-        title, body, content='questions', content_rowid='rowid'
+        question_id, title, body
       )
     `);
   } catch {
     // already exists
   }
 
-  // FTS triggers
+  // FTS triggers keep the standalone table in sync via question_id
   try {
     d.run(`
       CREATE TRIGGER questions_ai AFTER INSERT ON questions BEGIN
-        INSERT INTO questions_fts(rowid, title, body) VALUES (new.rowid, new.title, new.body);
+        INSERT INTO questions_fts(question_id, title, body) VALUES (new.id, new.title, new.body);
       END
     `);
     d.run(`
       CREATE TRIGGER questions_ad AFTER DELETE ON questions BEGIN
-        INSERT INTO questions_fts(questions_fts, rowid, title, body) VALUES('delete', old.rowid, old.title, old.body);
+        DELETE FROM questions_fts WHERE question_id = old.id;
       END
     `);
     d.run(`
       CREATE TRIGGER questions_au AFTER UPDATE ON questions BEGIN
-        INSERT INTO questions_fts(questions_fts, rowid, title, body) VALUES('delete', old.rowid, old.title, old.body);
-        INSERT INTO questions_fts(rowid, title, body) VALUES (new.rowid, new.title, new.body);
+        DELETE FROM questions_fts WHERE question_id = old.id;
+        INSERT INTO questions_fts(question_id, title, body) VALUES (new.id, new.title, new.body);
       END
     `);
   } catch {
