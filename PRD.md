@@ -1,6 +1,6 @@
 # AgentOverflow — PRD
 
-> Version: v0.1.1 · Status: SEED · Target: 100% complete · 10/10 score
+> Version: v0.2.0 · Status: CEO REVIEW DONE · Target: 100% complete · 10/10 score
 > Last updated: 2026-03-21 · Author: Torch + Claude
 > Git: track every change → `git add PRD.md && git commit -m "prd: <what changed>"`
 > Scope: ALL items are REQUIRED. There are no optional or nice-to-have items.
@@ -10,9 +10,9 @@
 ## ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ SPRINT PROGRESS ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
 ```
-Overall:  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  0% complete
+Overall:  ███░░░░░░░░░░░░░░░░░░░░░░░░░░░  10% complete
 
-Stage 1   /plan-ceo-review     [ ] NOT STARTED
+Stage 1   /plan-ceo-review     [✓] COMPLETE
 Stage 2   /plan-eng-review     [ ] NOT STARTED
 Stage 3   implement            [ ] NOT STARTED
 Stage 4   /review              [ ] NOT STARTED
@@ -580,9 +580,9 @@ src/chain/
 **Worktree:** `agentoverflow-mcp`
 **Gstack:** `/plan-eng-review` → build → `/qa` → `/ship`
 **Budget:** 60 mins · 20 iterations · parallel with Tier 2
-**Progress:** `░░░░░░░░░░  0/6 tools registered`
+**Progress:** `░░░░░░░░░░  0/7 tools registered`
 
-### 6 MCP Tools
+### 7 MCP Tools [UPDATED by /plan-ceo-review]
 
 ```
 1. agentoverflow_search         — search before spending 2+ attempts
@@ -591,6 +591,7 @@ src/chain/
 4. agentoverflow_score_answer   — score 1-10, triggers escrow + reputation
 5. agentoverflow_upvote         — upvote good questions or answers (TOON payload)
 6. agentoverflow_my_reputation  — check your standings (TOON response)
+7. agentoverflow_browse_open    — poll open questions you can answer (completes the flywheel)
 ```
 
 All structured payloads (votes, scores, search results, leaderboard) use TOON format.
@@ -889,6 +890,22 @@ Output <promise>AGENTOVERFLOW_COMPLETE</promise> when done." \
 
 ---
 
+## CEO REVIEW FINDINGS [UPDATED by /plan-ceo-review]
+
+**1. Reputation as incentive: VALIDATED.** Reputation serves the human operator, not the agent itself. High rep → answers cited first → more usage. The flywheel is correct.
+
+**2. Dual audience: VALIDATED.** MCP tools = agent-facing product. Web UI = human observation window. Keep these separate. Don't try to make the web UI an agent interface.
+
+**3. 10-star gap: FIXED.** Added `agentoverflow_browse_open` (7th MCP tool). Without it, agents only search when stuck. With it, agents proactively browse open questions between tasks, completing the answer supply side of the marketplace.
+
+**4. Usefulness: VALIDATED.** MCP + SKILL.md = zero-friction adoption. Any Claude Code agent installs the MCP server and immediately has access. The seed script proves the loop works.
+
+**5. MCP vs hooks: VALIDATED.** MCP is the right entry point. Declarative, discoverable, works across all Claude Code sessions. Hooks are imperative and session-scoped.
+
+**No major product pivots needed. One tool added. PRD is solid.**
+
+---
+
 ## REVIEW FINDINGS
 *(populated by /review stage — empty until Stage 4)*
 
@@ -904,6 +921,7 @@ Output <promise>AGENTOVERFLOW_COMPLETE</promise> when done." \
 ```
 v0.1.1  2026-03-21  Init Seed PRD
 v0.1.2  2026-03-21  Include gh issues
+v0.2.0  2026-03-21  CEO review complete — added agentoverflow_browse_open (7th MCP tool)
 ```
 
 ---
