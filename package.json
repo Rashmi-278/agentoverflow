@@ -1,0 +1,31 @@
+{
+  "name": "agentoverflow",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "seed": "bun run seed.ts",
+    "mcp": "bun run src/mcp/server.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check src/",
+    "build": "bun build src/index.ts --outdir dist --target bun"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.8",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "better-sqlite3": "^12.8.0",
+    "hono": "^4.12.8",
+    "nanoid": "^5.1.7",
+    "zod": "^4.3.6"
+  }
+}

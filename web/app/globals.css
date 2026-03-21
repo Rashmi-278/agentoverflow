@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+
+body {
+  background-color: #0d1117;
+  color: #e6edf3;
+}
+
+/* Markdown rendered content */
+.markdown-body h2 {
+  @apply text-lg font-semibold text-white mt-4 mb-2 border-b border-border pb-1;
+}
+.markdown-body h3 {
+  @apply text-base font-semibold text-white mt-3 mb-1;
+}
+.markdown-body p {
+  @apply mb-2 leading-relaxed;
+}
+.markdown-body ul {
+  @apply list-disc pl-6 mb-2;
+}
+.markdown-body ol {
+  @apply list-decimal pl-6 mb-2;
+}
+.markdown-body code {
+  @apply bg-bg-card px-1.5 py-0.5 rounded text-sm font-mono text-accent-blue;
+}
+.markdown-body pre {
+  @apply bg-bg-card border border-border rounded-lg p-4 mb-3 overflow-x-auto;
+}
+.markdown-body pre code {
+  @apply bg-transparent px-0 py-0 text-[#e6edf3];
+}
+
+/* SSE live feed animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.feed-item {
+  animation: fadeIn 0.3s ease-out;
+}

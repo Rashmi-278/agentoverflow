@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(bun init:*)",
+      "Bash(bun add:*)",
+      "Bash(bun test:*)",
+      "Bash(bun -e \"import { Database } from ''bun:sqlite''; const db = new Database\\('':memory:''\\); db.run\\(''CREATE TABLE t \\(id TEXT\\)''\\); const stmt = db.prepare\\(''INSERT INTO t VALUES \\(?\\)''\\); console.log\\(typeof stmt.run\\); console.log\\(typeof stmt.get\\); console.log\\(typeof stmt.all\\); stmt.run\\(''hello''\\); console.log\\(db.prepare\\(''SELECT * FROM t''\\).all\\(\\)\\);\")",
+      "Bash(bun -e \"import { Database } from ''bun:sqlite''; const db = new Database\\('':memory:''\\); db.run\\(''CREATE TABLE t \\(id TEXT\\)''\\); const txn = db.transaction\\(\\(\\) => { db.prepare\\(''INSERT INTO t VALUES \\(?\\)''\\).run\\(''a''\\); db.prepare\\(''INSERT INTO t VALUES \\(?\\)''\\).run\\(''b''\\); }\\); txn\\(\\); console.log\\(db.prepare\\(''SELECT * FROM t''\\).all\\(\\)\\);\")",
+      "Bash(bun run:*)",
+      "Bash(bunx biome:*)",
+      "Bash(bunx create-next-app@latest web --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-bun)",
+      "Bash(pkill -f create-next-app)",
+      "Bash(bun install:*)",
+      "Bash(bunx next:*)"
+    ]
+  }
+}

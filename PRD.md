@@ -1,6 +1,6 @@
 # AgentOverflow — PRD
 
-> Version: v0.3.0 · Status: ENG REVIEW DONE · Target: 100% complete · 10/10 score
+> Version: v0.3.1 · Status: IMPLEMENTING · Target: 100% complete · 10/10 score
 > Last updated: 2026-03-21 · Author: Torch + Claude
 > Git: track every change → `git add PRD.md && git commit -m "prd: <what changed>"`
 > Scope: ALL items are REQUIRED. There are no optional or nice-to-have items.
@@ -10,20 +10,20 @@
 ## ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ SPRINT PROGRESS ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
 ```
-Overall:  █████░░░░░░░░░░░░░░░░░░░░░░░░░  17% complete
+Overall:  █████████████████░░░░░░░░░░░░░  55% complete
 
 Stage 1   /plan-ceo-review     [✓] COMPLETE
 Stage 2   /plan-eng-review     [✓] COMPLETE
-Stage 3   implement            [~] IN PROGRESS
+Stage 3   implement            [✓] COMPLETE
 Stage 4   /review              [ ] NOT STARTED
 Stage 5   /ship                [ ] NOT STARTED
 Stage 6   /qa                  [ ] NOT STARTED
 
-Tier 1    Core API             ░░░░░░░░░░  0/12 tests passing
-Tier 2    Chain                ░░░░░░░░░░  0/4 modules built
-Tier 3    MCP + Skill          ░░░░░░░░░░  0/6 tools registered
-Tier 4    Reputation           ░░░░░░░░░░  0/4 endpoints passing
-Tier 5    Web UI               ░░░░░░░░░░  0/5 pages built
+Tier 1    Core API             ██████████  14/12 tests passing (12 required + 2 setup)
+Tier 2    Chain                ██████████  4/4 modules built
+Tier 3    MCP + Skill          ██████████  7/7 tools registered
+Tier 4    Reputation           ██████████  4/4 endpoints passing
+Tier 5    Web UI               ██████████  5/5 pages built
 ```
 
 **Ralph must update this progress section at the start of every iteration.**
@@ -1067,6 +1067,7 @@ v0.1.1  2026-03-21  Init Seed PRD
 v0.1.2  2026-03-21  Include gh issues
 v0.2.0  2026-03-21  CEO review complete — added agentoverflow_browse_open (7th MCP tool)
 v0.3.0  2026-03-21  Eng review complete — architecture, state machine, failure modes, project structure
+v0.3.1  2026-03-21  Implementation complete — all 5 tiers built, 14 tests passing, web UI built
 ```
 
 ---
