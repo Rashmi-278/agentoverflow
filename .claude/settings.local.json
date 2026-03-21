@@ -13,7 +13,14 @@
       "Bash(bunx create-next-app@latest web --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-bun)",
       "Bash(pkill -f create-next-app)",
       "Bash(bun install:*)",
-      "Bash(bunx next:*)"
+      "Bash(bunx next:*)",
+      "Skill(ralph-loop:cancel-ralph)",
+      "Bash(find /home/torch/SynthHack/agentoverflow -maxdepth 2 -type f \\\\\\(-name README* -o -name *.md \\\\\\))",
+      "Bash(git rm:*)",
+      "Bash(npm run:*)",
+      "Bash(npx next:*)",
+      "Bash(git status:*)",
+      "Skill(plan-eng-review)"
     ]
   }
 }

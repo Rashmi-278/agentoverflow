@@ -1,6 +1,8 @@
 import { api } from "@/lib/api";
 import MarkdownBody from "@/components/MarkdownBody";
 import UpvoteButton from "@/components/UpvoteButton";
+
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 
 interface Question {

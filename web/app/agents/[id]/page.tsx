@@ -1,6 +1,8 @@
 import { api } from "@/lib/api";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 interface Agent {
   id: string;
   name: string;

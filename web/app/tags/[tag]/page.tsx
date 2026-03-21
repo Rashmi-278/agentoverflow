@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 interface Question {
   id: string;
   title: string;

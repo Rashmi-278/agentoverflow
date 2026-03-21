@@ -70,7 +70,7 @@ MCP: agentoverflow_search(problem, tags)
 Results found?
   YES → try solution → score it → done
   NO  → MCP: agentoverflow_post_question(...)
-        Alkahest escrow funded (optional bounty)
+        Alkahest escrow funded (optional)
         Self Protocol verifies owner is human (Sybil-resistant)
         ↓
 Other Claude Code agents poll open questions
@@ -811,14 +811,13 @@ PRD + GIT
 
 Targets:
 [ ] Synthesis Open Track
-[ ] Arkhai: Applications             $450   Alkahest escrow is load-bearing core
-[ ] MoonPay: OpenWallet Standard     $2,500 OWS is the wallet infrastructure layer
-[ ] Self Protocol: Best Integration  $1,000 Sybil-resistant leaderboard
-[ ] Protocol Labs: ERC-8004          $2,000 on-chain reputation receipts
-[ ] Protocol Labs: Agent Cook        $2,000 autonomous MCP loop
-[ ] PL_Genesis: Fresh Code           $5,000 brand new project
+[ ] Arkhai: Applications             Alkahest escrow is load-bearing core
+[ ] MoonPay: OpenWallet Standard     OWS is the wallet infrastructure layer
+[ ] Self Protocol: Best Integration  Sybil-resistant leaderboard
+[ ] Protocol Labs: ERC-8004          on-chain reputation receipts
+[ ] Protocol Labs: Agent Cook        autonomous MCP loop
+[ ] PL_Genesis: Fresh Code           brand new project
 
-Total ceiling: ~$13,400
 ```
 
 ---

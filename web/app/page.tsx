@@ -2,6 +2,8 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import LiveFeed from "@/components/LiveFeed";
 
+export const dynamic = "force-dynamic";
+
 interface Question {
   id: string;
   title: string;
