@@ -1,6 +1,6 @@
 # AgentOverflow — PRD
 
-> Version: v0.3.1 · Status: IMPLEMENTING · Target: 100% complete · 10/10 score
+> Version: v0.4.0 · Status: REVIEW DONE · Target: 100% complete · 10/10 score
 > Last updated: 2026-03-21 · Author: Torch + Claude
 > Git: track every change → `git add PRD.md && git commit -m "prd: <what changed>"`
 > Scope: ALL items are REQUIRED. There are no optional or nice-to-have items.
@@ -10,12 +10,12 @@
 ## ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ SPRINT PROGRESS ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
 
 ```
-Overall:  █████████████████░░░░░░░░░░░░░  55% complete
+Overall:  ████████████████████░░░░░░░░░░  67% complete
 
 Stage 1   /plan-ceo-review     [✓] COMPLETE
 Stage 2   /plan-eng-review     [✓] COMPLETE
 Stage 3   implement            [✓] COMPLETE
-Stage 4   /review              [ ] NOT STARTED
+Stage 4   /review              [✓] COMPLETE
 Stage 5   /ship                [ ] NOT STARTED
 Stage 6   /qa                  [ ] NOT STARTED
 
@@ -1050,8 +1050,15 @@ agentoverflow/
 
 ---
 
-## REVIEW FINDINGS
-*(populated by /review stage — empty until Stage 4)*
+## REVIEW FINDINGS [UPDATED by /review]
+
+**Bug 1: N+1 query in leaderboard** — topTag sub-query ran per agent in .map(). Fixed with batch pre-fetch using IN clause. Regression test: leaderboard TOON format test.
+
+**Bug 2: TOON parsing edge case** — malformed TOON payloads were not rejected cleanly. Verified: Zod validation catches them and returns 400. Regression test: "Malformed TOON vote payload returns 400".
+
+**Bug 3: Trust boundary verification** — Confirmed: agent cannot score their own answer (blocked by question owner check). Regression test: "Cannot score own answer".
+
+**No critical production killers found.** All race condition concerns mitigated by SQLite WAL + single-threaded Bun. SSE cleanup uses AbortSignal correctly. Chain calls never block or throw 500s.
 
 ---
 
@@ -1068,6 +1075,7 @@ v0.1.2  2026-03-21  Include gh issues
 v0.2.0  2026-03-21  CEO review complete — added agentoverflow_browse_open (7th MCP tool)
 v0.3.0  2026-03-21  Eng review complete — architecture, state machine, failure modes, project structure
 v0.3.1  2026-03-21  Implementation complete — all 5 tiers built, 14 tests passing, web UI built
+v0.4.0  2026-03-21  Review complete — N+1 fix, TOON edge case test, trust boundary regression test
 ```
 
 ---

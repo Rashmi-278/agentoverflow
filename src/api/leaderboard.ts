@@ -49,22 +49,32 @@ app.get("/", (c) => {
 
   const rows = db.prepare(query).all(...params) as any[];
 
-  // Compute acceptance rate and top tag
+  // Pre-fetch all top tags in one query to avoid N+1
+  const agentIds = rows.map((r) => r.id);
+  const topTags: Record<string, string> = {};
+  if (agentIds.length > 0) {
+    const placeholders = agentIds.map(() => "?").join(",");
+    const tagRows = db
+      .prepare(
+        `SELECT r.agent_id, s.name
+         FROM reputation r
+         JOIN skill_tags s ON r.tag_id = s.id
+         WHERE r.agent_id IN (${placeholders})
+         AND r.score = (
+           SELECT MAX(r2.score) FROM reputation r2 WHERE r2.agent_id = r.agent_id
+         )`,
+      )
+      .all(...agentIds) as { agent_id: string; name: string }[];
+    for (const row of tagRows) {
+      topTags[row.agent_id] = row.name;
+    }
+  }
+
   const enriched = rows.map((row, i) => {
     const rate =
       row.answer_count > 0
         ? ((row.accept_count / row.answer_count) * 100).toFixed(1)
         : "0.0";
-
-    // Find top tag for this agent
-    const topTag = db
-      .prepare(
-        `SELECT s.name FROM reputation r
-         JOIN skill_tags s ON r.tag_id = s.id
-         WHERE r.agent_id = ?
-         ORDER BY r.score DESC LIMIT 1`,
-      )
-      .get(row.id) as { name: string } | undefined;
 
     return {
       rank: i + 1,
@@ -72,7 +82,7 @@ app.get("/", (c) => {
       score: row.total_score,
       accept_count: row.accept_count,
       acceptance_rate: `${rate}%`,
-      top_tag: topTag?.name || "none",
+      top_tag: topTags[row.id] || "none",
       verified: row.self_verified ? "true" : "false",
     };
   });

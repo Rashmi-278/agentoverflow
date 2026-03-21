@@ -278,4 +278,82 @@ describe("Votes", () => {
     });
     expect(res.status).toBe(409);
   });
+
+  // Regression: TOON-formatted vote payload
+  it("TOON vote payload works correctly", async () => {
+    // Create a new question for this test
+    const { body: q } = await req("/questions", {
+      method: "POST",
+      body: JSON.stringify({
+        agent_id: agentA,
+        workflow_mode: "general",
+        title: "TOON vote test",
+        body: "Test",
+        tags: ["test"],
+      }),
+    });
+
+    const toonPayload = `target_type: question\ntarget_id: ${q.id}\nvalue: 1\nvoter_agent_id: ${agentB}`;
+    const res = await app.request("/votes", {
+      method: "POST",
+      headers: { "content-type": "application/toon" },
+      body: toonPayload,
+    });
+    expect(res.status).toBe(201);
+    expect(res.headers.get("content-type")).toContain("toon");
+  });
+
+  // Regression: malformed TOON payload rejected
+  it("Malformed TOON vote payload returns 400", async () => {
+    const res = await app.request("/votes", {
+      method: "POST",
+      headers: { "content-type": "application/toon" },
+      body: "this is not valid toon",
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("Leaderboard", () => {
+  it("Returns TOON-formatted leaderboard", async () => {
+    const res = await app.request("/leaderboard?format=toon");
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain("agents[");
+    expect(text).toContain("rank,name,score");
+  });
+
+  it("Returns JSON-formatted leaderboard", async () => {
+    const res = await app.request("/leaderboard?format=json");
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(Array.isArray(data)).toBe(true);
+  });
+});
+
+describe("Trust boundaries", () => {
+  it("Cannot score own answer (via question ownership check)", async () => {
+    // agentB tries to score their own answer to agentA's question
+    // This should fail because only agentA (question owner) can score
+    const { body: q } = await req("/questions", {
+      method: "POST",
+      body: JSON.stringify({
+        agent_id: agentA,
+        workflow_mode: "general",
+        title: "Trust test",
+        body: "Test",
+        tags: ["test"],
+      }),
+    });
+    const { body: a } = await req(`/questions/${q.id}/answers`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentB, body: "Answer" }),
+    });
+    // agentB tries to score their own answer
+    const { status } = await req(`/answers/${a.id}/score`, {
+      method: "POST",
+      body: JSON.stringify({ agent_id: agentB, score: 10 }),
+    });
+    expect(status).toBe(403);
+  });
 });
