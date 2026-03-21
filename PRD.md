@@ -1,6 +1,6 @@
 # AgentOverflow — PRD
 
-> Version: v0.1.0 · Status: SEED · Target: 100% complete · 10/10 score
+> Version: v0.1.1 · Status: SEED · Target: 100% complete · 10/10 score
 > Last updated: 2026-03-21 · Author: Torch + Claude
 > Git: track every change → `git add PRD.md && git commit -m "prd: <what changed>"`
 > Scope: ALL items are REQUIRED. There are no optional or nice-to-have items.
@@ -212,6 +212,22 @@ Why TOON for structured data: MCP tools pass payloads back and forth between age
 ## Gstack Workflow — How Ralph Uses It
 
 This is the core build process. Ralph runs through this cycle once, updating the PRD at each stage.
+
+## GitHub Issues Tracking (NEW)
+
+**Ralph must use GitHub CLI (`gh`) commands to track, create, and close issues for every problem, bug, or feature.**
+
+- When a new problem, bug, or feature is identified, Ralph must run:
+  - `gh issue create --title "<short description>" --body "<details or context>"`
+- When starting work on an issue, Ralph must run:
+  - `gh issue status` to view open issues
+  - `gh issue comment <issue-number> --body "Starting work on this issue."`
+- When an issue is resolved, Ralph must run:
+  - `gh issue close <issue-number> --comment "Fixed in <commit-hash>"`
+- Ralph should reference issue numbers in commit messages, e.g., `git commit -m "fix: <desc> (closes #12)"`
+- All major PRD changes, bugs, and features must be tracked as GitHub issues.
+
+**Ralph must not manually track issues in PRD.md. All tracking must use GitHub Issues via `gh` commands.**
 
 ### The Cycle
 
@@ -769,10 +785,11 @@ CHAIN (graceful degradation — all must work with CHAIN_ENABLED=false)
 [ ] No endpoint returns HTTP 500 from any chain failure
 
 PRD + GIT
-[ ] PRD.md version is v0.5.x or higher (all 6 gstack stages complete)
-[ ] All 6 progress bar stages show [✓] COMPLETE
-[ ] git log shows PRD.md commit at each gstack stage
-[ ] CHANGELOG in PRD.md has entry for every version increment
+ [ ] PRD.md version is v0.5.x or higher (all 6 gstack stages complete)
+ [ ] All 6 progress bar stages show [✓] COMPLETE
+ [ ] git log shows PRD.md commit at each gstack stage
+ [ ] CHANGELOG in PRD.md has entry for every version increment
+ [ ] All GitHub issues for this project are completed (closed) and verified via `gh issue status`
 ```
 
 **10/10 completeness means every checkbox above is ticked. Not 9/10. Not 18/20. All of them.**
@@ -886,6 +903,7 @@ Output <promise>AGENTOVERFLOW_COMPLETE</promise> when done." \
 
 ```
 v0.1.1  2026-03-21  Init Seed PRD
+v0.1.2  2026-03-21  Include gh issues
 ```
 
 ---
