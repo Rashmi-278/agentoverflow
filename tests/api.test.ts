@@ -543,6 +543,141 @@ describe("Demo data", () => {
   });
 });
 
+describe("Claim token system", () => {
+  let claimAgentId: string;
+  let claimToken: string;
+
+  it("POST /agents returns claim_url on new registration", async () => {
+    const { status, body } = await req("/agents", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "ClaimTestAgent",
+        ows_wallet: "wallet_claim",
+        wallet_address: "0xCLAIM1234",
+      }),
+    });
+    expect(status === 201 || status === 200).toBe(true);
+    expect(body.claim_url).toBeDefined();
+    expect(body.claim_url).toContain("/claim/claim_");
+    // claim_token should NOT be in the response body directly
+    expect(body.claim_token).toBeUndefined();
+    claimAgentId = body.id;
+    // Extract token from URL
+    claimToken = body.claim_url.split("/claim/")[1];
+  }, 15000);
+
+  it("POST /agents returns claim_url on idempotent re-registration", async () => {
+    const { status, body } = await req("/agents", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "ClaimTestAgent",
+        ows_wallet: "wallet_claim",
+        wallet_address: "0xCLAIM1234",
+      }),
+    });
+    expect(status).toBe(200);
+    expect(body.claim_url).toContain("/claim/claim_");
+    expect(body.id).toBe(claimAgentId);
+    // Sensitive fields should not be leaked
+    expect(body.self_nullifier).toBeUndefined();
+  }, 15000);
+
+  it("GET /agents/claim/:token returns claimable status for valid token", async () => {
+    const { status, body } = await req(`/agents/claim/${claimToken}`);
+    expect(status).toBe(200);
+    expect(body.agent_id).toBe(claimAgentId);
+    expect(body.status).toBe("claimable");
+    expect(body.name).toBe("ClaimTestAgent");
+  });
+
+  it("GET /agents/claim/invalid_token returns 404", async () => {
+    const { status } = await req("/agents/claim/invalid_token_xyz");
+    expect(status).toBe(404);
+  });
+
+  it("GET /agents/:id does NOT expose claim_token", async () => {
+    const { status, body } = await req(`/agents/${claimAgentId}`);
+    expect(status).toBe(200);
+    expect(body.claim_token).toBeUndefined();
+    expect(body.self_nullifier).toBeUndefined();
+  });
+
+  it("POST /agents/:id/claim/regenerate generates new token", async () => {
+    const { status, body } = await req(`/agents/${claimAgentId}/claim/regenerate`, {
+      method: "POST",
+    });
+    expect(status).toBe(200);
+    expect(body.claim_url).toContain("/claim/claim_");
+    expect(body.claim_token).toBeDefined();
+    // Old token should no longer work
+    const { status: oldStatus } = await req(`/agents/claim/${claimToken}`);
+    expect(oldStatus).toBe(404);
+    // Update to new token
+    claimToken = body.claim_token;
+  });
+
+  it("POST /agents/:id/claim/regenerate returns 404 for unknown agent", async () => {
+    const { status } = await req("/agents/agent_nonexistent/claim/regenerate", {
+      method: "POST",
+    });
+    expect(status).toBe(404);
+  });
+
+  it("POST /agents/claim/:token/verify consumes token and starts verification", async () => {
+    const { status, body } = await req(`/agents/claim/${claimToken}/verify`, {
+      method: "POST",
+    });
+    // Self Protocol may or may not be available — accept 200 (started) or 503 (chain disabled)
+    expect(status === 200 || status === 503).toBe(true);
+    if (status === 200) {
+      expect(body.agent_id).toBe(claimAgentId);
+      expect(body.status).toBe("pending");
+      // Token should be consumed — re-using it should 404
+      const { status: reuse } = await req(`/agents/claim/${claimToken}/verify`, {
+        method: "POST",
+      });
+      expect(reuse).toBe(404);
+    }
+  }, 15000);
+
+  it("POST /agents/claim/invalid_token/verify returns 404", async () => {
+    const { status } = await req("/agents/claim/invalid_token_xyz/verify", {
+      method: "POST",
+    });
+    expect(status).toBe(404);
+  });
+
+  it("GET /agents/claim/:token returns already_verified for verified agents", async () => {
+    // Manually mark the agent as verified for this test
+    const { getDb } = await import("../src/db");
+    const db = getDb();
+    // First regenerate a token so we have one to test with
+    const { body: regen } = await req(`/agents/${claimAgentId}/claim/regenerate`, {
+      method: "POST",
+    });
+    // Mark verified
+    db.prepare("UPDATE agents SET self_verified = 1 WHERE id = ?").run(claimAgentId);
+    const { status, body } = await req(`/agents/claim/${regen.claim_token}`);
+    expect(status).toBe(200);
+    expect(body.status).toBe("already_verified");
+    // Clean up
+    db.prepare("UPDATE agents SET self_verified = 0 WHERE id = ?").run(claimAgentId);
+  });
+
+  it("POST /agents/:id/claim/regenerate returns 400 for verified agents", async () => {
+    const { getDb } = await import("../src/db");
+    const db = getDb();
+    db.prepare("UPDATE agents SET self_verified = 1 WHERE id = ?").run(claimAgentId);
+    const { status, body } = await req(`/agents/${claimAgentId}/claim/regenerate`, {
+      method: "POST",
+    });
+    expect(status).toBe(400);
+    expect(body.error).toContain("already verified");
+    // Clean up
+    db.prepare("UPDATE agents SET self_verified = 0 WHERE id = ?").run(claimAgentId);
+  });
+});
+
 describe("Reputation accuracy", () => {
   it("Rejected answer increments answer_count but not accept_count", async () => {
     // Create a new question + answer + reject it

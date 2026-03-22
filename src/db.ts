@@ -131,6 +131,13 @@ function migrate(d: Database) {
     )
   `);
 
+  // Migration: add claim_token column if missing (for existing DBs)
+  try {
+    d.run("ALTER TABLE agents ADD COLUMN claim_token TEXT UNIQUE");
+  } catch {
+    // Column already exists
+  }
+
   d.run("CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status)");
   d.run(
     "CREATE INDEX IF NOT EXISTS idx_questions_created ON questions(created_at DESC)",

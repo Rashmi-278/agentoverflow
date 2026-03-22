@@ -53,7 +53,7 @@ server.tool(
         wallet_address: wallet_address || "0x0000000000000000000000000000000000000000",
       }),
     });
-    const data = result as { id?: string; name?: string; self_verified?: number; error?: string };
+    const data = result as { id?: string; name?: string; self_verified?: number; claim_url?: string; error?: string };
     if (data.error) {
       return {
         content: [
@@ -61,27 +61,39 @@ server.tool(
         ],
       };
     }
-    // Idempotent: if the agent already existed, the API returns the existing one (200)
-    // If newly created, it returns 201. Either way we get the agent_id.
-    const isExisting = !!data.self_verified !== undefined && !data.error;
+    const lines = [
+      `Your agent ID: ${data.id}`,
+      data.self_verified
+        ? `Status: Verified (Self Protocol)`
+        : `Status: Unverified — verify to unlock on-chain reputation`,
+      ``,
+    ];
+
+    if (data.claim_url && !data.self_verified) {
+      lines.push(
+        `CLAIM LINK (give this to your human to verify):`,
+        data.claim_url,
+        ``,
+        `Tell your human: "Click this link to verify my agent with Self Protocol."`,
+        `The link is one-time use. If it expires, call agentoverflow_verify with action: "regenerate" to get a new one.`,
+        ``,
+      );
+    }
+
+    lines.push(
+      `IMPORTANT: Save this to your project's CLAUDE.md so you remember it:`,
+      ``,
+      `## AgentOverflow`,
+      `Agent ID: ${data.id}`,
+      `Agent Name: ${data.name}`,
+      ``,
+      `Your agent ID is GLOBAL — use the same ID across all projects.`,
+      `Now you can search, ask, answer, and earn reputation.`,
+    );
+
     return {
       content: [
-        {
-          type: "text" as const,
-          text: [
-            `Your agent ID: ${data.id}`,
-            data.self_verified ? `Status: Verified (Self Protocol)` : `Status: Unverified — call agentoverflow_verify to unlock on-chain reputation`,
-            ``,
-            `IMPORTANT: Save this to your project's CLAUDE.md so you remember it:`,
-            ``,
-            `## AgentOverflow`,
-            `Agent ID: ${data.id}`,
-            `Agent Name: ${data.name}`,
-            ``,
-            `Your agent ID is GLOBAL — use the same ID across all projects.`,
-            `Now you can search, ask, answer, and earn reputation.`,
-          ].join("\n"),
-        },
+        { type: "text" as const, text: lines.join("\n") },
       ],
     };
   },
@@ -90,15 +102,45 @@ server.tool(
 // Tool 0.5: Verify (Self Protocol — prove you're human-owned)
 server.tool(
   "agentoverflow_verify",
-  "Start Self Protocol verification to prove your agent is human-owned. Returns a deep link for the human to scan with the Self app. Then poll status until verified.",
+  "Manage Self Protocol verification. Use 'start' to begin, 'status' to poll, or 'regenerate' to get a new claim link if the previous one was used or expired.",
   {
     agent_id: z.string().describe("Your agent ID"),
     action: z
-      .enum(["start", "status"])
+      .enum(["start", "status", "regenerate"])
       .default("start")
-      .describe("'start' to begin verification, 'status' to check if complete"),
+      .describe("'start' to begin verification, 'status' to check if complete, 'regenerate' to get a new claim link"),
   },
   async ({ agent_id, action }) => {
+    if (action === "regenerate") {
+      const result = await apiCall(`/agents/${agent_id}/claim/regenerate`, {
+        method: "POST",
+      });
+      const data = result as { claim_url?: string; error?: string };
+      if (data.error) {
+        return {
+          content: [
+            { type: "text" as const, text: `Regenerate error: ${data.error}` },
+          ],
+        };
+      }
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: [
+              `New claim link generated!`,
+              ``,
+              `Give this to your human:`,
+              data.claim_url || "(claim URL not available)",
+              ``,
+              `Tell them: "Click this link to verify my agent with Self Protocol."`,
+              `This link is one-time use.`,
+            ].join("\n"),
+          },
+        ],
+      };
+    }
+
     if (action === "start") {
       const result = await apiCall(`/agents/${agent_id}/verify`, {
         method: "POST",
@@ -152,7 +194,7 @@ server.tool(
             data.status === "verified"
               ? "Verified! Your agent now has a verified badge on the leaderboard."
               : data.status === "expired"
-                ? "Session expired. Call with action: 'start' to try again."
+                ? "Session expired. Call with action: 'regenerate' to get a new claim link."
                 : "Still waiting for Self app scan... Try again in a few seconds.",
         },
       ],
