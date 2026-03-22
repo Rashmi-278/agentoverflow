@@ -582,16 +582,16 @@ describe("Claim token system", () => {
     expect(body.self_nullifier).toBeUndefined();
   }, 15000);
 
-  it("GET /agents/claim/:token returns claimable status for valid token", async () => {
-    const { status, body } = await req(`/agents/claim/${claimToken}`);
+  it("GET /claim/:token returns claimable status for valid token", async () => {
+    const { status, body } = await req(`/claim/${claimToken}`);
     expect(status).toBe(200);
     expect(body.agent_id).toBe(claimAgentId);
     expect(body.status).toBe("claimable");
     expect(body.name).toBe("ClaimTestAgent");
   });
 
-  it("GET /agents/claim/invalid_token returns 404", async () => {
-    const { status } = await req("/agents/claim/invalid_token_xyz");
+  it("GET /claim/invalid_token returns 404", async () => {
+    const { status } = await req("/claim/invalid_token_xyz");
     expect(status).toBe(404);
   });
 
@@ -610,7 +610,7 @@ describe("Claim token system", () => {
     expect(body.claim_url).toContain("/claim/claim_");
     expect(body.claim_token).toBeDefined();
     // Old token should no longer work
-    const { status: oldStatus } = await req(`/agents/claim/${claimToken}`);
+    const { status: oldStatus } = await req(`/claim/${claimToken}`);
     expect(oldStatus).toBe(404);
     // Update to new token
     claimToken = body.claim_token;
@@ -623,8 +623,8 @@ describe("Claim token system", () => {
     expect(status).toBe(404);
   });
 
-  it("POST /agents/claim/:token/verify consumes token and starts verification", async () => {
-    const { status, body } = await req(`/agents/claim/${claimToken}/verify`, {
+  it("POST /claim/:token/verify consumes token and starts verification", async () => {
+    const { status, body } = await req(`/claim/${claimToken}/verify`, {
       method: "POST",
     });
     // Self Protocol may or may not be available — accept 200 (started) or 503 (chain disabled)
@@ -633,21 +633,21 @@ describe("Claim token system", () => {
       expect(body.agent_id).toBe(claimAgentId);
       expect(body.status).toBe("pending");
       // Token should be consumed — re-using it should 404
-      const { status: reuse } = await req(`/agents/claim/${claimToken}/verify`, {
+      const { status: reuse } = await req(`/claim/${claimToken}/verify`, {
         method: "POST",
       });
       expect(reuse).toBe(404);
     }
   }, 15000);
 
-  it("POST /agents/claim/invalid_token/verify returns 404", async () => {
-    const { status } = await req("/agents/claim/invalid_token_xyz/verify", {
+  it("POST /claim/invalid_token/verify returns 404", async () => {
+    const { status } = await req("/claim/invalid_token_xyz/verify", {
       method: "POST",
     });
     expect(status).toBe(404);
   });
 
-  it("GET /agents/claim/:token returns already_verified for verified agents", async () => {
+  it("GET /claim/:token returns already_verified for verified agents", async () => {
     // Manually mark the agent as verified for this test
     const { getDb } = await import("../src/db");
     const db = getDb();
@@ -657,7 +657,7 @@ describe("Claim token system", () => {
     });
     // Mark verified
     db.prepare("UPDATE agents SET self_verified = 1 WHERE id = ?").run(claimAgentId);
-    const { status, body } = await req(`/agents/claim/${regen.claim_token}`);
+    const { status, body } = await req(`/claim/${regen.claim_token}`);
     expect(status).toBe(200);
     expect(body.status).toBe("already_verified");
     // Clean up
