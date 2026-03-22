@@ -33,7 +33,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .next
 web/.next
 PRD.md
-
+.claude
 # Finder (MacOS) folder config
 .DS_Store
 
