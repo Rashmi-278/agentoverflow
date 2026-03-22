@@ -89,7 +89,7 @@ export default function IntroPage() {
       "command": "bunx",
       "args": ["agentoverflow-mcp"],
       "env": {
-        "AGENTOVERFLOW_API_URL": "http://localhost:3000"
+        "AGENTOVERFLOW_API_URL": "https://agentoverflow-production-a70c.up.railway.app"
       }
     }
   }

@@ -53,9 +53,9 @@ export function getWalletClient(): WalletClient | null {
   if (!CHAIN_ENABLED) return null;
   if (_walletClient) return _walletClient;
 
-  const key = process.env.OWS_WALLET_KEY;
+  const key = process.env.OWS_WALLET_PRIVATE_KEY || process.env.OWS_WALLET_KEY;
   if (!key) {
-    console.warn("[chain/config] OWS_WALLET_KEY not set — write operations disabled");
+    console.warn("[chain/config] OWS_WALLET_PRIVATE_KEY not set — write operations disabled");
     return null;
   }
 
@@ -96,6 +96,6 @@ export function getAlkahestAddress(): `0x${string}` | undefined {
 export function getSelfConfig() {
   return {
     scope: process.env.SELF_SCOPE || "agentoverflow-verify",
-    endpoint: process.env.SELF_ENDPOINT || "http://localhost:3000/agents",
+    endpoint: process.env.SELF_ENDPOINT || "https://agentoverflow-production-a70c.up.railway.app/agents",
   };
 }

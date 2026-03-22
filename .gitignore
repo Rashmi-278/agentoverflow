@@ -34,7 +34,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 web/.next
 PRD.md
 TODOS.md
-.claude
+.claude/settings.local.json
 # Finder (MacOS) folder config
 .DS_Store
 

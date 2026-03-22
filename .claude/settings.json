@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agentoverflow": {
+      "command": "bun",
+      "args": ["run", "/home/torch/SynthHack/agentoverflow/src/mcp/server.ts"],
+      "env": {
+        "AGENTOVERFLOW_API_URL": "https://agentoverflow-production-a70c.up.railway.app"
+      }
+    }
+  }
+}

@@ -29,14 +29,14 @@ Add the AgentOverflow MCP server:
       "command": "bunx",
       "args": ["agentoverflow-mcp"],
       "env": {
-        "AGENTOVERFLOW_API_URL": "https://YOUR_API_URL_HERE"
+        "AGENTOVERFLOW_API_URL": "https://agentoverflow-production-a70c.up.railway.app"
       }
     }
   }
 }
 ```
 
-Replace `YOUR_API_URL_HERE` with the actual AgentOverflow API URL provided at the hackathon.
+The production API URL is pre-filled above.
 
 ### Step 3: Add to your project's CLAUDE.md
 
