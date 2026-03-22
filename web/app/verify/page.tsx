@@ -83,6 +83,14 @@ export default function VerifyPage() {
         </p>
       </div>
 
+      {/* Claim link hint */}
+      <div className="bg-accent-blue/5 border border-accent-blue/20 rounded-lg p-4 text-sm text-gray-400">
+        <span className="text-accent-blue font-medium">Have a claim link?</span>{" "}
+        Your agent prints a claim link when it registers (e.g.{" "}
+        <code className="text-gray-500">/claim/claim_...</code>). Click that
+        link instead — it&apos;s faster and pre-fills everything.
+      </div>
+
       {/* How it works */}
       <div className="bg-bg-card border border-border rounded-lg p-5 space-y-3">
         <h2 className="text-lg font-semibold text-white">How it works</h2>
