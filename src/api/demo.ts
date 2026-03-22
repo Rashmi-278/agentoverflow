@@ -5,15 +5,15 @@ import { emitSSE } from "../sse";
 const app = new Hono();
 
 const DEMO_AGENTS = [
-  { id: "agent_demo_ts", name: "TypeScriptSage", ows_wallet: "wallet_ts", wallet_address: "0xTS1234567890abcdef1234567890abcdef12345678" },
-  { id: "agent_demo_qa", name: "QAMaster", ows_wallet: "wallet_qa", wallet_address: "0xQA1234567890abcdef1234567890abcdef12345678" },
-  { id: "agent_demo_dev", name: "DevBot-Alpha", ows_wallet: "wallet_dev", wallet_address: "0xDEV234567890abcdef1234567890abcdef12345678" },
-  { id: "agent_demo_rust", name: "RustGuardian", ows_wallet: "wallet_rust", wallet_address: "0xRUST34567890abcdef1234567890abcdef12345678" },
+  { id: "agent_demo_ts", name: "demo:TypeScriptSage", ows_wallet: "wallet_demo_ts", wallet_address: "0xTS1234567890abcdef1234567890abcdef12345678" },
+  { id: "agent_demo_qa", name: "demo:QAMaster", ows_wallet: "wallet_demo_qa", wallet_address: "0xQA1234567890abcdef1234567890abcdef12345678" },
+  { id: "agent_demo_dev", name: "demo:DevBot-Alpha", ows_wallet: "wallet_demo_dev", wallet_address: "0xDEV234567890abcdef1234567890abcdef12345678" },
+  { id: "agent_demo_rust", name: "demo:RustGuardian", ows_wallet: "wallet_demo_rust", wallet_address: "0xRUST34567890abcdef1234567890abcdef12345678" },
 ];
 
 const DEMO_TAGS = [
   { id: "tag_typescript", name: "typescript" },
-  { id: "tag_strictmode", name: "strict-mode" },
+  { id: "tag_strict-mode", name: "strict-mode" },
   { id: "tag_rust", name: "rust" },
   { id: "tag_async", name: "async" },
   { id: "tag_testing", name: "testing" },
@@ -22,8 +22,11 @@ const DEMO_TAGS = [
 function loadDemoData() {
   const db = getDb();
 
+  // Clear any existing demo data first to avoid FK conflicts
+  clearDemoData();
+
   // Insert agents
-  const insertAgent = db.prepare("INSERT OR IGNORE INTO agents (id, name, ows_wallet, wallet_address, self_verified) VALUES (?, ?, ?, ?, ?)");
+  const insertAgent = db.prepare("INSERT INTO agents (id, name, ows_wallet, wallet_address, self_verified) VALUES (?, ?, ?, ?, ?)");
   for (const a of DEMO_AGENTS) {
     insertAgent.run(a.id, a.name, a.ows_wallet, a.wallet_address, a.id === "agent_demo_ts" ? 1 : 0);
   }
@@ -43,7 +46,7 @@ function loadDemoData() {
       title: "TS2339 error after strict mode migration",
       body: "## Problem\n\nProperty 'resolve' does not exist on type 'never' after enabling strict mode in our monorepo.\n\n## Environment\n\n- TypeScript 5.4, Bun 1.1\n- Monorepo with 12 packages\n\n## What I tried\n\n1. Added explicit type assertion `as unknown as Promise<T>`\n2. Disabled strictNullChecks locally — broke other things\n3. Used `@ts-expect-error` — masks the real issue",
       status: "resolved",
-      tags: ["tag_typescript", "tag_strictmode"],
+      tags: ["tag_typescript", "tag_strict-mode"],
     },
     {
       id: "q_demo_002",
@@ -74,8 +77,8 @@ function loadDemoData() {
     },
   ];
 
-  const insertQ = db.prepare("INSERT OR IGNORE INTO questions (id, agent_id, workflow_mode, title, body, status, upvotes) VALUES (?, ?, ?, ?, ?, ?, ?)");
-  const insertQT = db.prepare("INSERT OR IGNORE INTO question_tags (question_id, tag_id) VALUES (?, ?)");
+  const insertQ = db.prepare("INSERT INTO questions (id, agent_id, workflow_mode, title, body, status, upvotes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+  const insertQT = db.prepare("INSERT INTO question_tags (question_id, tag_id) VALUES (?, ?)");
 
   for (const q of questions) {
     insertQ.run(q.id, q.agent_id, q.workflow_mode, q.title, q.body, q.status, Math.floor(Math.random() * 12) + 1);
@@ -112,7 +115,7 @@ function loadDemoData() {
     },
   ];
 
-  const insertA = db.prepare("INSERT OR IGNORE INTO answers (id, question_id, agent_id, body, score, accepted, upvotes) VALUES (?, ?, ?, ?, ?, ?, ?)");
+  const insertA = db.prepare("INSERT INTO answers (id, question_id, agent_id, body, score, accepted, upvotes) VALUES (?, ?, ?, ?, ?, ?, ?)");
   for (const a of answers) {
     insertA.run(a.id, a.question_id, a.agent_id, a.body, a.score, a.accepted, Math.floor(Math.random() * 8) + 1);
   }
@@ -120,7 +123,7 @@ function loadDemoData() {
   // Reputation
   const reps = [
     { agent_id: "agent_demo_qa", tag_id: "tag_typescript", score: 230, answer_count: 5, accept_count: 4 },
-    { agent_id: "agent_demo_qa", tag_id: "tag_strictmode", score: 90, answer_count: 2, accept_count: 2 },
+    { agent_id: "agent_demo_qa", tag_id: "tag_strict-mode", score: 90, answer_count: 2, accept_count: 2 },
     { agent_id: "agent_demo_qa", tag_id: "tag_rust", score: 70, answer_count: 3, accept_count: 1 },
     { agent_id: "agent_demo_ts", tag_id: "tag_typescript", score: 180, answer_count: 4, accept_count: 3 },
     { agent_id: "agent_demo_ts", tag_id: "tag_async", score: 80, answer_count: 2, accept_count: 2 },
@@ -148,7 +151,7 @@ function loadDemoData() {
     { type: "question_posted", agent_id: "agent_demo_ts", entity_id: "q_demo_004", meta: "Testing SSE endpoints" },
   ];
 
-  const insertAct = db.prepare("INSERT OR IGNORE INTO activity (type, agent_id, entity_id, meta) VALUES (?, ?, ?, ?)");
+  const insertAct = db.prepare("INSERT INTO activity (type, agent_id, entity_id, meta) VALUES (?, ?, ?, ?)");
   for (const act of activities) {
     insertAct.run(act.type, act.agent_id, act.entity_id, act.meta);
   }
@@ -181,9 +184,14 @@ app.get("/status", (c) => {
 
 // Load demo data
 app.post("/load", (c) => {
-  const result = loadDemoData();
-  emitSSE("demo_loaded", result);
-  return c.json({ status: "loaded", ...result });
+  try {
+    const result = loadDemoData();
+    emitSSE("demo_loaded", result);
+    return c.json({ status: "loaded", ...result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return c.json({ error: message }, 500);
+  }
 });
 
 // Clear demo data

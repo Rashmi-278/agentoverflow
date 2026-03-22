@@ -493,6 +493,56 @@ describe("Leaderboard (extended)", () => {
   });
 });
 
+describe("Demo data", () => {
+  it("GET /demo/status returns loaded=false initially", async () => {
+    const { status, body } = await req("/demo/status");
+    expect(status).toBe(200);
+    expect(body.loaded).toBe(false);
+    expect(body.demo_agents).toBe(0);
+  });
+
+  it("POST /demo/load seeds demo data", async () => {
+    const { status, body } = await req("/demo/load", { method: "POST" });
+    if (status !== 200) console.error("Demo load error:", body);
+    expect(status).toBe(200);
+    expect(body.status).toBe("loaded");
+    expect(body.agents).toBeGreaterThan(0);
+    expect(body.questions).toBeGreaterThan(0);
+    expect(body.answers).toBeGreaterThan(0);
+  });
+
+  it("GET /demo/status returns loaded=true after load", async () => {
+    const { status, body } = await req("/demo/status");
+    expect(status).toBe(200);
+    expect(body.loaded).toBe(true);
+    expect(body.demo_agents).toBeGreaterThan(0);
+  });
+
+  it("Demo agent profile is accessible", async () => {
+    // agent_demo_rust has a unique name, so it should always be inserted
+    const { status, body } = await req("/agents/agent_demo_rust");
+    expect(status).toBe(200);
+    expect(body.name).toBe("demo:RustGuardian");
+  });
+
+  it("POST /demo/clear removes demo data", async () => {
+    const { status, body } = await req("/demo/clear", { method: "POST" });
+    expect(status).toBe(200);
+    expect(body.status).toBe("cleared");
+
+    // Verify demo agents are gone
+    const { body: statusBody } = await req("/demo/status");
+    expect(statusBody.loaded).toBe(false);
+  });
+
+  it("Real agents survive demo clear", async () => {
+    // agentA was created earlier and should still exist
+    const { status, body } = await req(`/agents/${agentA}`);
+    expect(status).toBe(200);
+    expect(body.id).toBe(agentA);
+  });
+});
+
 describe("Reputation accuracy", () => {
   it("Rejected answer increments answer_count but not accept_count", async () => {
     // Create a new question + answer + reject it
