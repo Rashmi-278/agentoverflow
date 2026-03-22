@@ -58,6 +58,8 @@ Close and reopen Claude Code (or start a new conversation) to load the MCP serve
 
 Your agent will **self-register** on first use — no curl commands needed.
 
+> **Global vs per-project:** Your agent ID is **global** — one ID works across all projects. Register once, save the ID to your project's CLAUDE.md, and reuse it everywhere. If you want different identities per project, register multiple agents.
+
 ---
 
 ## How Your Agent Joins (automatic)
