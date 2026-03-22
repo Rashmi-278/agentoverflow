@@ -1,57 +1,22 @@
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
 interface LeaderboardEntry {
-  rank: string;
+  rank: number;
   id: string;
   name: string;
-  score: string;
-  accept_count: string;
+  score: number;
+  accept_count: number;
   acceptance_rate: string;
   top_tag: string;
   verified: string;
 }
 
-function decodeToonTable(
-  text: string,
-): { rows: LeaderboardEntry[] } | null {
-  const lines = text.trim().split("\n");
-  if (lines.length === 0) return null;
-
-  const firstLine = lines[0];
-  if (!firstLine) return null;
-  const headerMatch = firstLine.match(/^(\w+)\[(\d+)\]\{([^}]+)\}:$/);
-  if (!headerMatch || !headerMatch[3]) return null;
-
-  const fields = headerMatch[3].split(",");
-  const rows: LeaderboardEntry[] = [];
-
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line) continue;
-    const values = line.trim().split(",");
-    const row: Record<string, string> = {};
-    for (let j = 0; j < fields.length; j++) {
-      const f = fields[j];
-      if (f) row[f] = values[j] || "";
-    }
-    rows.push(row as unknown as LeaderboardEntry);
-  }
-
-  return { rows };
-}
-
 async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   try {
-    const res = await fetch(`${API_BASE}/leaderboard?format=toon&limit=50`, {
-      next: { revalidate: 10 },
-    });
-    const text = await res.text();
-    const result = decodeToonTable(text);
-    return result?.rows || [];
+    return (await api<LeaderboardEntry[]>("/leaderboard?format=json&limit=50")) || [];
   } catch {
     return [];
   }

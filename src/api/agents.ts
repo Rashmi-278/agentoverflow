@@ -20,6 +20,13 @@ const createAgentSchema = z.object({
   wallet_address: z.string().min(1),
 });
 
+// List all agents
+app.get("/", (c) => {
+  const db = getDb();
+  const agents = db.prepare("SELECT id, name, wallet_address, self_verified, created_at FROM agents ORDER BY created_at DESC").all();
+  return c.json(agents);
+});
+
 app.post("/", async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body) return c.json({ error: "Invalid JSON" }, 400);
