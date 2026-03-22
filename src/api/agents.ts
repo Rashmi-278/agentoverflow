@@ -4,13 +4,11 @@ import { z } from "zod";
 import { registerAgentOnChain } from "../chain/erc8004";
 import { createAgentWallet } from "../chain/ows";
 import {
-  startSelfRegistration,
   checkRegistrationStatus,
-  verifySelfProof,
-  checkNullifier,
 } from "../chain/self";
 import { getDb } from "../db";
 import { emitSSE } from "../sse";
+import { startVerificationForAgent } from "./verify-helper";
 
 const app = new Hono();
 
@@ -86,74 +84,6 @@ app.get("/:id", (c) => {
   return c.json(agent);
 });
 
-// GET /agents/claim/:token — Resolve a claim token to agent info (for the claim page)
-app.get("/claim/:token", (c) => {
-  const token = c.req.param("token");
-  const db = getDb();
-
-  const agent = db.prepare(
-    "SELECT id, name, self_verified, created_at FROM agents WHERE claim_token = ?",
-  ).get(token) as { id: string; name: string; self_verified: number; created_at: number } | null;
-
-  if (!agent) {
-    return c.json({ error: "Claim link has been used or has expired. Ask your agent to generate a new link." }, 404);
-  }
-
-  if (agent.self_verified) {
-    return c.json({ agent_id: agent.id, status: "already_verified", redirect: `/agents/${agent.id}` });
-  }
-
-  return c.json({
-    agent_id: agent.id,
-    name: agent.name,
-    created_at: agent.created_at,
-    status: "claimable",
-  });
-});
-
-// POST /agents/claim/:token/verify — Consume the claim token and start Self verification
-app.post("/claim/:token/verify", async (c) => {
-  const token = c.req.param("token");
-  const db = getDb();
-
-  const agent = db.prepare(
-    "SELECT id, wallet_address, self_verified, claim_token FROM agents WHERE claim_token = ?",
-  ).get(token) as { id: string; wallet_address: string; self_verified: number; claim_token: string } | null;
-
-  if (!agent) {
-    return c.json({ error: "Claim link has been used or has expired. Ask your agent to generate a new link." }, 404);
-  }
-
-  if (agent.self_verified) {
-    return c.json({ error: "Agent already verified", redirect: `/agents/${agent.id}` }, 400);
-  }
-
-  // Check Sybil resistance
-  const alreadyRegistered = await checkNullifier(agent.wallet_address);
-  if (alreadyRegistered) {
-    return c.json({ error: "This wallet already has a verified agent — one human, one agent" }, 409);
-  }
-
-  // Start Self Protocol registration session
-  const session = await startSelfRegistration(agent.wallet_address);
-  if (!session) {
-    return c.json({ error: "Failed to start Self Protocol verification — chain may be disabled" }, 503);
-  }
-
-  // Consume the claim token (one-time use) and store session token
-  db.prepare(
-    "UPDATE agents SET claim_token = NULL, self_nullifier = ? WHERE id = ?",
-  ).run(session.sessionToken, agent.id);
-
-  return c.json({
-    agent_id: agent.id,
-    status: "pending",
-    deep_link: session.deepLink,
-    qr_data: session.qrData,
-    message: "Scan the QR code or open the deep link with the Self app to verify.",
-  });
-});
-
 // POST /agents/:id/claim/regenerate — Generate a new claim token (for retry after consumed/expired)
 app.post("/:id/claim/regenerate", (c) => {
   const agentId = c.req.param("id");
@@ -213,28 +143,16 @@ app.post("/:id/verify", async (c) => {
     return c.json({ error: "Agent already verified" }, 400);
   }
 
-  // Check if this wallet already has a verified agent (Sybil resistance)
-  const alreadyRegistered = await checkNullifier(agent.wallet_address);
-  if (alreadyRegistered) {
-    return c.json({ error: "This wallet already has a verified agent — one human, one agent" }, 409);
+  const result = await startVerificationForAgent(agentId, agent.wallet_address);
+  if (!result.success) {
+    return c.json({ error: result.error }, result.status);
   }
-
-  // Start Self Protocol registration session
-  const session = await startSelfRegistration(agent.wallet_address);
-  if (!session) {
-    return c.json({ error: "Failed to start Self Protocol verification — chain may be disabled" }, 503);
-  }
-
-  // Store session token so we can poll status later
-  db.prepare(
-    "UPDATE agents SET self_nullifier = ? WHERE id = ?",
-  ).run(session.sessionToken, agentId);
 
   return c.json({
     agent_id: agentId,
     status: "pending",
-    deep_link: session.deepLink,
-    qr_data: session.qrData,
+    deep_link: result.deep_link,
+    qr_data: result.qr_data,
     message: "Scan the QR code or open the deep link with the Self app to verify. Then call GET /agents/:id/verify/status to check.",
   });
 });
