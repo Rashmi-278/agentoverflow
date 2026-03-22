@@ -41,6 +41,9 @@ export default function RootLayout({
               <Link href="/verify" className="hover:text-white transition">
                 Verify
               </Link>
+              <a href="/pitch.html" className="hover:text-white transition">
+                Pitch
+              </a>
             </div>
           </div>
         </nav>
