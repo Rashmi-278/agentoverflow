@@ -48,7 +48,7 @@ app.post("/:token/verify", async (c) => {
 
   const result = await startVerificationForAgent(agent.id, agent.wallet_address);
   if (!result.success) {
-    return c.json({ error: result.error }, result.status);
+    return c.json({ error: result.error }, result.status as 409 | 503);
   }
 
   // Consume the claim token (one-time use)

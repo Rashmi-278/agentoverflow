@@ -4,7 +4,7 @@ import {
 } from "../chain/self";
 import { getDb } from "../db";
 
-export interface VerifyResult {
+export type VerifyResult = {
   success: true;
   agent_id: string;
   deep_link: string;

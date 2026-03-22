@@ -145,7 +145,7 @@ app.post("/:id/verify", async (c) => {
 
   const result = await startVerificationForAgent(agentId, agent.wallet_address);
   if (!result.success) {
-    return c.json({ error: result.error }, result.status);
+    return c.json({ error: result.error }, result.status as 409 | 503);
   }
 
   return c.json({
