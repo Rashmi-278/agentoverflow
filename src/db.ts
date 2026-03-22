@@ -132,11 +132,14 @@ function migrate(d: Database) {
   `);
 
   // Migration: add claim_token column if missing (for existing DBs)
+  // SQLite doesn't support ALTER TABLE ADD COLUMN with UNIQUE constraint,
+  // so add the column without UNIQUE, then create a unique index separately.
   try {
-    d.run("ALTER TABLE agents ADD COLUMN claim_token TEXT UNIQUE");
+    d.run("ALTER TABLE agents ADD COLUMN claim_token TEXT");
   } catch {
     // Column already exists
   }
+  d.run("CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_claim_token ON agents(claim_token)");
 
   d.run("CREATE INDEX IF NOT EXISTS idx_questions_status ON questions(status)");
   d.run(
