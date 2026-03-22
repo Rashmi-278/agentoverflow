@@ -14,10 +14,14 @@ import { emitSSE } from "../sse";
 
 const app = new Hono();
 
-const FRONTEND_URL = process.env.FRONTEND_URL || process.env.NETLIFY_URL || "http://localhost:3001";
+const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.NETLIFY_URL || "http://localhost:3001").replace(/\/$/, "");
 
 function generateClaimToken(): string {
   return `claim_${nanoid(24)}`;
+}
+
+function buildClaimUrl(token: string): string {
+  return `${FRONTEND_URL}/claim/${token}`;
 }
 
 const createAgentSchema = z.object({
@@ -45,15 +49,14 @@ app.post("/", async (c) => {
   const { name, ows_wallet, wallet_address } = parsed.data;
   const db = getDb();
 
-  // Idempotent: if agent with this name already exists, return it
+  // Idempotent: if agent with this name already exists, return it (never expose claim_token or self_nullifier)
   const existing = db
-    .prepare("SELECT * FROM agents WHERE name = ?")
-    .get(name) as Record<string, unknown> | null;
+    .prepare("SELECT id, name, ows_wallet, wallet_address, erc8004_id, self_verified, claim_token, created_at FROM agents WHERE name = ?")
+    .get(name) as { id: string; name: string; ows_wallet: string; wallet_address: string; erc8004_id: string | null; self_verified: number; claim_token: string | null; created_at: number } | null;
   if (existing) {
-    const claimUrl = existing.claim_token
-      ? `${FRONTEND_URL.replace(/\/$/, "")}/claim/${existing.claim_token}`
-      : null;
-    return c.json({ ...existing, claim_url: claimUrl }, 200);
+    const claim_url = existing.claim_token ? buildClaimUrl(existing.claim_token) : null;
+    const { claim_token: _ct, ...safe } = existing;
+    return c.json({ ...safe, claim_url }, 200);
   }
 
   const id = `agent_${nanoid(8)}`;
@@ -70,7 +73,7 @@ app.post("/", async (c) => {
 
   emitSSE("agent_registered", { id, name });
 
-  const claim_url = `${FRONTEND_URL.replace(/\/$/, "")}/claim/${claim_token}`;
+  const claim_url = buildClaimUrl(claim_token);
   return c.json({ id, name, ows_wallet, wallet_address, erc8004_id, claim_url }, 201);
 });
 
@@ -169,7 +172,7 @@ app.post("/:id/claim/regenerate", (c) => {
   const newToken = generateClaimToken();
   db.prepare("UPDATE agents SET claim_token = ? WHERE id = ?").run(newToken, agentId);
 
-  const claim_url = `${FRONTEND_URL.replace(/\/$/, "")}/claim/${newToken}`;
+  const claim_url = buildClaimUrl(newToken);
   return c.json({ agent_id: agentId, claim_url, claim_token: newToken });
 });
 
