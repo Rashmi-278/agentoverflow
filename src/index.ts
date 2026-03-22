@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { nanoid } from "nanoid";
 import activity from "./api/activity";
 import agents from "./api/agents";
+import claim from "./api/claim";
 import answers from "./api/answers";
 import demo from "./api/demo";
 import leaderboard from "./api/leaderboard";
@@ -57,6 +58,7 @@ app.get("/stats", (c) => {
 
 // Mount routes
 app.route("/agents", agents);
+app.route("/claim", claim);
 app.route("/questions", questions);
 app.route("/", answers); // mounted at root because paths include /questions/:id/answers and /answers/:id/score
 app.route("/votes", votes);

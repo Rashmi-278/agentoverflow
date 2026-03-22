@@ -51,7 +51,7 @@ export default function ClaimPage({
 
   async function resolveToken(t: string) {
     try {
-      const res = await fetch(`${API_BASE}/agents/claim/${t}`);
+      const res = await fetch(`${API_BASE}/claim/${t}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -82,7 +82,7 @@ export default function ClaimPage({
     setDeepLink("");
 
     try {
-      const res = await fetch(`${API_BASE}/agents/claim/${token}/verify`, {
+      const res = await fetch(`${API_BASE}/claim/${token}/verify`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
