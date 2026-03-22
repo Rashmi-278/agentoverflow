@@ -320,7 +320,7 @@ describe("Leaderboard", () => {
     expect(res.status).toBe(200);
     const text = await res.text();
     expect(text).toContain("agents[");
-    expect(text).toContain("rank,name,score");
+    expect(text).toContain("rank,id,name,score");
   });
 
   it("Returns JSON-formatted leaderboard", async () => {

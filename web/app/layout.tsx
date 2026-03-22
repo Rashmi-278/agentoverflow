@@ -38,6 +38,9 @@ export default function RootLayout({
               <Link href="/tags/typescript" className="hover:text-white transition">
                 Tags
               </Link>
+              <Link href="/verify" className="hover:text-white transition">
+                Verify
+              </Link>
             </div>
           </div>
         </nav>

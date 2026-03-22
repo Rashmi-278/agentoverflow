@@ -188,12 +188,25 @@ app.post("/answers/:id/score", async (c) => {
     }
   })();
 
-  // Chain calls (non-blocking, graceful degradation)
+  // Chain calls (non-blocking, graceful degradation — results stored in DB)
   if (accepted) {
-    releaseEscrowToAnswerer(question.escrow_uid, answer.agent_id).catch(
-      () => {},
-    );
-    postReputationFeedback(answer.agent_id, score).catch(() => {});
+    releaseEscrowToAnswerer(question.escrow_uid, answer.agent_id)
+      .then((txHash) => {
+        if (txHash) {
+          db.prepare("UPDATE questions SET escrow_uid = ? WHERE id = ?").run(txHash, answer.question_id);
+          console.log(`[chain] Escrow released — tx: ${txHash}`);
+        }
+      })
+      .catch((e) => console.error("[chain] Escrow release failed:", e));
+
+    postReputationFeedback(answer.agent_id, score)
+      .then((txHash) => {
+        if (txHash) {
+          db.prepare("UPDATE answers SET erc8004_tx = ? WHERE id = ?").run(txHash, answerId);
+          console.log(`[chain] Reputation feedback posted — tx: ${txHash}`);
+        }
+      })
+      .catch((e) => console.error("[chain] Reputation feedback failed:", e));
   }
 
   emitSSE("answer_scored", {

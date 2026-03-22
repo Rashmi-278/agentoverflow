@@ -22,8 +22,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@open-wallet-standard/core": "^0.3.9",
+    "@selfxyz/core": "^1.2.0-beta.1",
+    "alkahest-ts": "^0.7.5",
     "hono": "^4.12.8",
     "nanoid": "^5.1.7",
+    "viem": "^2.47.6",
     "zod": "^4.3.6"
   }
 }
