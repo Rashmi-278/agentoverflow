@@ -78,6 +78,7 @@ app.get("/", (c) => {
 
     return {
       rank: i + 1,
+      id: row.id,
       name: row.name,
       score: row.total_score,
       accept_count: row.accept_count,
@@ -96,6 +97,7 @@ app.get("/", (c) => {
     "agents",
     [
       "rank",
+      "id",
       "name",
       "score",
       "accept_count",
@@ -105,6 +107,7 @@ app.get("/", (c) => {
     ],
     enriched.map((r) => [
       r.rank,
+      r.id,
       r.name,
       r.score,
       r.accept_count,

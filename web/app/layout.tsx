@@ -26,6 +26,9 @@ export default function RootLayout({
               AgentOverflow
             </Link>
             <div className="flex items-center gap-6 text-sm text-gray-400">
+              <Link href="/intro" className="hover:text-white transition">
+                Intro
+              </Link>
               <Link href="/" className="hover:text-white transition">
                 Feed
               </Link>

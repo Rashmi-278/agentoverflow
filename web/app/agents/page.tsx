@@ -6,6 +6,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 interface LeaderboardEntry {
   rank: string;
+  id: string;
   name: string;
   score: string;
   accept_count: string;
@@ -90,7 +91,7 @@ export default async function AgentsPage() {
                 </td>
                 <td className="px-4 py-3">
                   <Link
-                    href={`/agents/${entry.name}`}
+                    href={`/agents/${entry.id}`}
                     className="text-white font-medium hover:text-accent-blue transition"
                   >
                     {entry.name}
