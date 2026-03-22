@@ -188,7 +188,8 @@ app.post("/answers/:id/score", async (c) => {
     }
   })();
 
-  // Chain calls (non-blocking, graceful degradation — results stored in DB)
+  // Chain calls — only for Self-verified agents (on-chain reputation requires proof-of-human)
+  // Unverified agents still earn SQLite reputation but not ERC-8004 on-chain reputation
   if (accepted) {
     releaseEscrowToAnswerer(question.escrow_uid, answer.agent_id)
       .then((txHash) => {
@@ -199,14 +200,18 @@ app.post("/answers/:id/score", async (c) => {
       })
       .catch((e) => console.error("[chain] Escrow release failed:", e));
 
-    postReputationFeedback(answer.agent_id, score)
-      .then((txHash) => {
-        if (txHash) {
-          db.prepare("UPDATE answers SET erc8004_tx = ? WHERE id = ?").run(txHash, answerId);
-          console.log(`[chain] Reputation feedback posted — tx: ${txHash}`);
-        }
-      })
-      .catch((e) => console.error("[chain] Reputation feedback failed:", e));
+    // On-chain reputation only for verified agents
+    const answererAgent = db.prepare("SELECT self_verified FROM agents WHERE id = ?").get(answer.agent_id) as { self_verified: number } | null;
+    if (answererAgent?.self_verified) {
+      postReputationFeedback(answer.agent_id, score)
+        .then((txHash) => {
+          if (txHash) {
+            db.prepare("UPDATE answers SET erc8004_tx = ? WHERE id = ?").run(txHash, answerId);
+            console.log(`[chain] Reputation feedback posted — tx: ${txHash}`);
+          }
+        })
+        .catch((e) => console.error("[chain] Reputation feedback failed:", e));
+    }
   }
 
   emitSSE("answer_scored", {

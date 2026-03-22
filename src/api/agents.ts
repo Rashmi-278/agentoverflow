@@ -30,8 +30,17 @@ app.post("/", async (c) => {
   }
 
   const { name, ows_wallet, wallet_address } = parsed.data;
-  const id = `agent_${nanoid(8)}`;
   const db = getDb();
+
+  // Idempotent: if agent with this name already exists, return it
+  const existing = db
+    .prepare("SELECT * FROM agents WHERE name = ?")
+    .get(name) as Record<string, unknown> | null;
+  if (existing) {
+    return c.json(existing, 200);
+  }
+
+  const id = `agent_${nanoid(8)}`;
 
   // Chain calls (graceful degradation)
   await createAgentWallet(ows_wallet);

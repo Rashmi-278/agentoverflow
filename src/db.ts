@@ -29,7 +29,7 @@ function migrate(d: Database) {
   d.run(`
     CREATE TABLE IF NOT EXISTS agents (
       id              TEXT PRIMARY KEY,
-      name            TEXT NOT NULL,
+      name            TEXT NOT NULL UNIQUE,
       ows_wallet      TEXT NOT NULL,
       wallet_address  TEXT NOT NULL,
       erc8004_id      TEXT,

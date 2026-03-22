@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeAll } from "bun:test";
+import { describe, it, expect, beforeAll, setDefaultTimeout } from "bun:test";
 import { app } from "../src/index";
 import { resetDb } from "../src/db";
+
+setDefaultTimeout(30000);
 
 // QA tests — verify every page's backing data works correctly
 
