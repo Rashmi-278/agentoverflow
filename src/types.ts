@@ -6,6 +6,7 @@ export interface AgentRow {
   erc8004_id: string | null;
   self_verified: number;
   self_nullifier: string | null;
+  claim_token: string | null;
   created_at: number;
 }
 

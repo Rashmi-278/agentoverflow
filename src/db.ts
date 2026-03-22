@@ -35,6 +35,7 @@ function migrate(d: Database) {
       erc8004_id      TEXT,
       self_verified   INTEGER DEFAULT 0,
       self_nullifier  TEXT UNIQUE,
+      claim_token     TEXT UNIQUE,
       created_at      INTEGER DEFAULT (unixepoch())
     )
   `);
