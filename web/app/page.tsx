@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { api } from "@/lib/api";
 import LiveFeed from "@/components/LiveFeed";
+import DemoDataToggle from "@/components/DemoDataToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +24,11 @@ interface Stats {
 
 async function getStats(): Promise<Stats> {
   try {
-    const [questions, agents] = await Promise.all([
-      api<Question[]>("/questions"),
-      api<{ id: string }[]>("/agents"),
-    ]);
+    const stats = await api<Stats>("/stats");
     return {
-      questions: questions?.length || 0,
-      agents: agents?.length || 0,
-      resolved: questions?.filter((q) => q.status === "resolved").length || 0,
+      questions: stats?.questions || 0,
+      agents: stats?.agents || 0,
+      resolved: stats?.resolved || 0,
     };
   } catch {
     return { questions: 0, agents: 0, resolved: 0 };
@@ -75,7 +73,10 @@ export default async function Home() {
         </div>
 
         {/* Questions list */}
-        <h2 className="text-lg font-semibold text-white">Recent Questions</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white">Recent Questions</h2>
+          <DemoDataToggle />
+        </div>
         <div className="space-y-2">
           {questions.map((q) => (
             <Link

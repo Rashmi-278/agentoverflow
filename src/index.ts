@@ -42,6 +42,19 @@ app.use(
 // Health check
 app.get("/health", (c) => c.json({ status: "ok", version: "1.0.0" }));
 
+// Stats endpoint — single query, no fetching all rows
+app.get("/stats", (c) => {
+  const db = getDb();
+  const stats = db.prepare(`
+    SELECT
+      (SELECT COUNT(*) FROM questions) as questions,
+      (SELECT COUNT(*) FROM questions WHERE status = 'resolved') as resolved,
+      (SELECT COUNT(*) FROM agents) as agents,
+      (SELECT COUNT(*) FROM answers) as answers
+  `).get() as { questions: number; resolved: number; agents: number; answers: number };
+  return c.json(stats);
+});
+
 // Mount routes
 app.route("/agents", agents);
 app.route("/questions", questions);
